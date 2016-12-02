@@ -106,6 +106,10 @@ div.tooltip {
     margin: 10px;
 }
 
+.cursorAuto{
+    cursor: auto;
+}
+
 .cardTitle {
     font-family: sans-serif;
     fill: gray;
