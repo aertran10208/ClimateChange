@@ -6,7 +6,13 @@ var svg = d3.select("#mygraph").append("svg")
     .attr("width", width + margin.left + margin.right)
     .attr("height", height + margin.top + margin.bottom)
     .append("g")
-    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");       
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");      
+
+var tooltip = d3.select("body").append("div")   
+    .attr("class", "tooltip")               
+    .style("opacity", 0);
+
+/***************xScales***************/
 
 var xScale1 = d3.scale.linear()
     .range([0,width]);
@@ -20,6 +26,8 @@ var xScale3 = d3.scale.linear()
 var xScale4 = d3.scale.linear()
     .range([0,width]);
 
+/***************yScales***************/
+
 var yScale1 = d3.scale.linear()
     .range([height,0]);
 
@@ -32,9 +40,7 @@ var yScale3 = d3.scale.linear()
 var yScale4 = d3.scale.linear()
     .range([height,0]);
 
-var tooltip = d3.select("body").append("div")   
-    .attr("class", "tooltip")               
-    .style("opacity", 0);
+/***************xAxes***************/
 
 var xAxis1 = d3.svg.axis()
     .scale(xScale1)
@@ -52,6 +58,8 @@ var xAxis3 = d3.svg.axis()
 var xAxis4 = d3.svg.axis()
     .scale(xScale4)
     .orient("bottom");
+
+/***************yAxes***************/
 
 var yAxis1 = d3.svg.axis()
     .scale(yScale1)
@@ -71,7 +79,8 @@ var yAxis4 = d3.svg.axis()
     .orient("left")
     .tickSize(-6);
 
-////////////////////////////////////////////////
+/***************Line Functions***************/
+
 var line1 = d3.svg.line()
     .x( function(d) { 
         return xScale1(d.Sea_Date); 
@@ -104,21 +113,28 @@ var line4 = d3.svg.line()
         return yScale4(d.size); 
     });
 
+/***************Intialize Variables***************/
+
 var dataset1, dataset2, dataset3, dateset4;
+var red = "#e41a1c", blue = "#377eb8", yellow = "#FFAC00", green = "#4daf4a", gray = "#D3D3D3";
+var tempRed = "#e41a1c", tempBlue = "#377eb8", tempYellow = "#FFAC00", tempGreen = "#4daf4a";
 var focus = svg.append("g").style("display", "none");
-var focus2 = svg.append("g").style("display", "none");
 var bisectDate1 = d3.bisector(function(d) { return d.Sea_Date; }).left;
 var bisectDate2 = d3.bisector(function(d) { return d.Temp_Year; }).left;
 var bisectDate3 = d3.bisector(function(d) { return d.CO2_Year; }).left;
 var bisectDate4 = d3.bisector(function(d) { return d.Sea_Ice_Year; }).left;
 var onRedPath = false, onBluePath = false, onYellowPath = false, onGreenPath = false;
 var onRedZoom = false, onBlueZoom = false, onYellowZoom = false, onGreenZoom = false;
-var redDisplay = true, blueDisplay = true, yellowDisplay = true, greenDisplay = true;
+var onRedTitle = false, onBlueTitle = false, onYellowTitle = false, onGreenTitle = false;
+var redGrayed = false, blueGrayed = false, yellowGrayed = false, greenGrayed = false;
 var isolateOn = false;
 var isolateCounter = 0;
 var displayFullCounter = 0;
 var zoomToggled = false;
+var displayMore = false;
+var redrawCounter = 0, grayOut = false;
 
+/***************Read in Data***************/
 d3.csv("CSIRO_Recons_gmsl_mo_2015.csv", function(error1, data1){
 
     if (error1) throw error1;     
@@ -130,24 +146,25 @@ d3.csv("CSIRO_Recons_gmsl_mo_2015.csv", function(error1, data1){
         d.GMSL = +d.GMSL;
     });
 
-    xScale1.domain([1979,2016]);
+    xScale1.domain([1979,2015]);
     yScale1.domain([-22.5,76.1]);
     
     dataPrint1();
     
-    $('#my_checkbox1').on('change.bootstrapSwitch', function(e, state) {
-        var mode = e.target.checked;
-        if (mode == true) {
-            zoomOut();
-            zoomToggled = true;
-        } else {
-            zoomReset();
-            zoomToggled = false;
-        };
+    $("#separate_lines").on("click", function (e) {
+        zoomOut();
+        zoomToggled = true;
     });
-    
-    $('#my_checkbox2').on('change.bootstrapSwitch', function(e, state) {
-        var mode = e.target.checked;
+    $("#overlap_lines").on("click", function (e) {
+        zoomReset();
+        zoomToggled = false;
+    });
+    $("#1880_2015").on("click", function (e) {
+        displayMore = true;
+        displayFullData();
+    });
+    $("#1980_2015").on("click", function (e) {
+        displayMore = false;
         displayFullData();
     });
 });
@@ -163,7 +180,7 @@ d3.csv("ANNUAL_GLOBAL_TEMP.csv", function(error2, data2){
         d.Annual_5_Year_Mean = +d.Annual_5_Year_Mean;
     });
 
-    xScale2.domain([1979,2016]);
+    xScale2.domain([1979,2015]);
     yScale2.domain([0.18,0.7]);
     dataPrint2();
 });
@@ -179,9 +196,8 @@ d3.csv("ANNUAL_CO2_EMISSION.csv", function(error3, data3){
         d.Mean = +d.Mean;
     });
 
-    xScale3.domain([1979,2016]);
+    xScale3.domain([1979,2015]);
     yScale3.domain(d3.extent(dataset3, function(d) { return d.Mean;}));
-
     dataPrint3();
 });
 
@@ -196,9 +212,8 @@ d3.csv("ARTIC_SEA_ICE_MIN.csv", function(error4, data4){
         d.size = +d.size;
     });
 
-    xScale4.domain([1979,2016]);
+    xScale4.domain([1979,2015]);
     yScale4.domain((d3.extent(dataset4, function(d) { return d.size;})).reverse() );
-
     dataPrint4();
 });
 
@@ -209,14 +224,15 @@ svg.append("clipPath")
         .attr("width", width)
         .style("opacity",1);
 
-//////////////////////////////////////////////////////////////////////////////////
+/***************Functions to print/draw the data***************/
+
 function dataPrint1() {
     
     svg.append("path")
         .datum(dataset1)
         .attr("id","redLine")
         .attr("class", "line")
-        .style("stroke", "#e41a1c")
+        .style("stroke", red)
         .style("opacity", 0)
         .attr("d", line1)
         .attr("clip-path", "url(#clipLine)")
@@ -245,14 +261,14 @@ function dataPrint1() {
                                         onRedPath = false;
                                         hideTooltip();
                                    })
-        .on("mousemove", mousemove)
-        .on("click", isolate);
+        .on("mousemove", mousemove);
 
     //Draw y axis
     svg.append("g")
         .attr("class", "axisRed")
         .attr("transform", "translate(-20,0)")
         .style("opacity", 0)
+        .style("fill", red)
         .call(yAxis1)
         .transition()
         .duration(500)
@@ -260,7 +276,7 @@ function dataPrint1() {
     
     svg.append("text")
         .attr("id", "textRed")
-        .style("fill", "#e41a1c")
+        .style("fill", red)
         .attr("transform", "rotate(-90)")
         .attr("x", -height/2)
         .attr("dy", -60)
@@ -280,25 +296,54 @@ function dataPrint1() {
         .call(xAxis1);
     };
     
-    //Draw area to capture zoom
     svg.append("rect")
-        .attr("x", -40)
-        .attr("height", height)
+        .attr("id", "redRect")
+        .attr("x", -75)
+        .attr("y", 160)
+        .attr("rx", 5)
+        .attr("ry", 5)
+        .attr("height", 250)
         .attr("width", "20px")
+        .style("stroke", red)
+        .style("fill", "#ffffff")
+        .style("fill-opacity", "0")
         .style("opacity", 0)
-        .on("mouseover", function() { onRedZoom = true;})
-        .on("mouseout", function() { onRedZoom = false;})
-        .call(d3.behavior.zoom().y(yScale1).on("zoom", zoomed));
-
+        .on("mouseover", function() { 
+            svg.select("#redRect")
+                .style("stroke-width","5px"); 
+            onRedTitle = true;
+            }
+        )
+        .on("mouseout", function() { 
+            svg.select("#redRect")
+                .style("stroke-width","1px");
+            onRedTitle = false;
+            }
+        )
+        .on("click", function() {
+            if(redGrayed == false){
+                redrawGraph();
+                removeRed();
+                dataPrint1();
+                svg.selectAll("#redLine")
+                    .style("stroke-width", redrawCounter%2!=0 ? "3px" : "1.5px");
+            };
+            }
+        )
+        .transition()
+        .duration(500)
+        .style("opacity", 1);
 };
+
 //////////////////////////////////////////////////////////////////////////////////
+
 function dataPrint2() {
 
     svg.append("path")
         .datum(dataset2)
         .attr("id","blueLine")
         .attr("class", "line")
-        .style("stroke", "#377eb8")
+        .style("stroke", blue)
         .style("opacity", 0)
         .attr("d", line2)
         .attr("clip-path", "url(#clipLine)")
@@ -327,13 +372,13 @@ function dataPrint2() {
                                         onBluePath = false;
                                         hideTooltip();
                                    })
-        .on("mousemove", mousemove)
-        .on("click", isolate);
+        .on("mousemove", mousemove);
 
     svg.append("g")
         .attr("class", "axisBlue")
-        .attr("transform", "translate(-80,0)")
+        .attr("transform", "translate(-90,0)")
         .style("opacity", 0)
+        .style("fill", blue)
         .call(yAxis2)
         .transition()
         .duration(500)
@@ -341,36 +386,66 @@ function dataPrint2() {
     
     svg.append("text")
         .attr("id", "textBlue")
-        .style("fill", "#377eb8")
+        .style("fill", blue)
         .attr("transform", "rotate(-90)")
         .attr("x", -height/2)
-        .attr("dy", -130)
+        .attr("dy", -140)
         .style("text-anchor", "middle")
         .style("opacity", 0)
         .text("Global Annual Temp. Mean (C)")
         .transition()
         .duration(500)
         .style("opacity", 1);
-
-    //Draw area to capture zoom
+    
     svg.append("rect")
-        .attr("x", -100)
-        .attr("height", height)
+        .attr("id", "blueRect")
+        .attr("x", -155)
+        .attr("y", 160)
+        .attr("rx", 5)
+        .attr("ry", 5)
+        .attr("height", 250)
         .attr("width", "20px")
-        .style("opacity", 0)
-        .on("mouseover", function() { onBlueZoom = true;})
-        .on("mouseout", function() { onBlueZoom = false;})
-        .call(d3.behavior.zoom().y(yScale2).on("zoom", zoomed));
-
+        .style("stroke", blue)
+        .style("fill", "#ffffff")
+        .style("fill-opacity", "0")
+        .style("opacity",0)
+        .on("mouseover", function() {
+            svg.select("#blueRect")
+                .style("stroke-width","5px");
+            onBlueTitle = true;
+            }
+        )
+        .on("mouseout", function() {
+            svg.select("#blueRect")
+                .style("stroke-width","1px");
+            onBlueTitle = false;
+            }
+        )
+        .on("click", function() {
+            if(blueGrayed == false){
+                redrawGraph();
+                removeBlue();
+                dataPrint2();
+                moveBlue();
+                svg.selectAll("#blueLine")
+                    .style("stroke-width", redrawCounter%2!=0 ? "3px" : "1.5px");
+            };
+            }
+        )
+        .transition()
+        .duration(500)
+        .style("opacity",1);
 };
+
 //////////////////////////////////////////////////////////////////////////////////
+
 function dataPrint3() {
 
     svg.append("path")
     .datum(dataset3)
     .attr("id", "yellowLine")
     .attr("class", "line")
-    .style("stroke", "#FFAC00")
+    .style("stroke", yellow)
     .style("opacity", 0)
     .attr("d", line3)
     .transition()
@@ -398,14 +473,13 @@ function dataPrint3() {
                                         onYellowPath = false;
                                         hideTooltip();
                                    })
-        .on("mousemove", mousemove)
-        .on("click", isolate);
-
+        .on("mousemove", mousemove);
 
     svg.append("g")
         .attr("class", "axisYellow")
         .attr("transform", "translate(740,0)")
         .style("opacity", 0)
+        .style("fill", yellow)
         .call(yAxis3)
         .transition()
         .duration(500)
@@ -416,7 +490,7 @@ function dataPrint3() {
     svg.append("g")
         .append("text")
         .attr("id", "textYellow")
-        .style("fill", "#FFAC00")
+        .style("fill", yellow)
         .attr("x", height/2)
         .attr("dy", -790)
         .attr("transform", "rotate(90)")
@@ -426,26 +500,51 @@ function dataPrint3() {
         .transition()
         .duration(500)
         .style("opacity", 1);
-
-    //Draw area to capture zoom
+    
     svg.append("rect")
-        .attr("x", 740)
-        .attr("height", height)
+        .attr("id", "yellowRect")
+        .attr("x", 785)
+        .attr("y", 160)
+        .attr("rx", 5)
+        .attr("ry", 5)
+        .attr("height", 250)
         .attr("width", "20px")
-        .style("opacity", 0)
-        .on("mouseover", function() { onYellowZoom = true;})
-        .on("mouseout", function() { onYellowZoom = false;})
-        .call(d3.behavior.zoom().y(yScale3).on("zoom", zoomed));
-
+        .style("stroke", yellow)
+        .style("fill", "#ffffff")
+        .style("fill-opacity", "0")
+        .on("mouseover", function() {
+            svg.select("#yellowRect")
+                .style("stroke-width","5px");
+            onYellowTitle = true;
+            }
+        )
+        .on("mouseout", function() {
+            svg.select("#yellowRect")
+                .style("stroke-width","1px");
+            onYellowTitle = false;
+            }
+        )
+        .on("click", function() {
+            if(yellowGrayed == false){
+                redrawGraph();
+                removeYellow();
+                dataPrint3();
+                svg.selectAll("#yellowLine")
+                    .style("stroke-width", redrawCounter%2!=0 ? "3px" : "1.5px");
+            };
+            }
+        );
 };
+
 //////////////////////////////////////////////////////////////////////////////////
+
 function dataPrint4() {
 
     svg.append("path")
     .datum(dataset4)
     .attr("id","greenLine")
     .attr("class", "line")
-    .style("stroke", "#4daf4a")
+    .style("stroke", green)
     .style("opacity", 0)
     .attr("d", line4)
     .transition()
@@ -473,13 +572,13 @@ function dataPrint4() {
                                         onGreenPath = false;
                                         hideTooltip();
                                    })
-        .on("mousemove", mousemove)
-        .on("click", isolate);
+        .on("mousemove", mousemove);
 
     svg.append("g")
         .attr("class", "axisGreen")
         .style("opacity", 0)
-        .attr("transform", "translate(810,0)")
+        .attr("transform", "translate(820,0)")
+        .style("fill", green)
         .call(yAxis4)
         .transition()
         .duration(500)
@@ -490,74 +589,66 @@ function dataPrint4() {
     svg.append("g")
         .append("text")
         .attr("id", "textGreen")
-        .style("fill", "#4daf4a")
+        .style("fill", green)
         .attr("transform", "rotate(90)")
         .attr("x", height/2)
-        .attr("dy", -855)
+        .attr("dy", -870)
         .style("text-anchor", "middle")
         .style("opacity", 0)
         .text("Artic Sea Ice Minimum (M sq. km)")
         .transition()
         .duration(500)
         .style("opacity", 1);
-
-    //Draw area to capture zoom
+    
     svg.append("rect")
-        .attr("x", 805)
-        .attr("height", height)
+        .attr("id", "greenRect")
+        .attr("x", 865)
+        .attr("y", 160)
+        .attr("rx", 5)
+        .attr("ry", 5)
+        .attr("height", 250)
         .attr("width", "20px")
-        .style("opacity", 0)
-        .on("mouseover", function() { onGreenZoom = true;})
-        .on("mouseout", function() { onGreenZoom = false;})
-        .call(d3.behavior.zoom().y(yScale4).on("zoom", zoomed));
-
+        .style("stroke", green)
+        .style("fill", "#ffffff")
+        .style("fill-opacity", "0")
+        .on("mouseover", function() {
+            svg.select("#greenRect")
+                .style("stroke-width","5px");
+            onGreenTitle = true;
+            }
+        )
+        .on("mouseout", function() {
+            svg.select("#greenRect")
+                    .style("stroke-width","1px");
+            onGreenTitle = false;
+            }
+        )
+        .on("click", function() {
+            if(greenGrayed == false){
+                redrawGraph();
+                removeGreen();
+                dataPrint4();
+                moveGreen();
+                svg.selectAll("#greenLine")
+                    .style("stroke-width", redrawCounter%2!=0 ? "3px" : "1.5px");
+            };
+            }
+        );
 };
-//////////////////////////////////////////////////////////////////////////////////  
 
-function zoomed(d) {
-
-    var scaleMultiplier = d3.event.scale
-    console.log(scaleMultiplier);
-    if (onRedZoom) {
-        svg.select(".axisRed").call(yAxis1);
-        console.log("red " + yScale1.domain());
-        svg.selectAll("#redLine")
-            .datum(dataset1)
-            .attr("d", line1);
-    } else if (onBlueZoom) {
-        svg.select(".axisBlue").call(yAxis2);
-        console.log("blue " + yScale2.domain());
-        svg.selectAll("#blueLine")
-            .datum(dataset2)
-            .attr("d", line2);
-    } else if (onYellowZoom) {
-        svg.select(".axisYellow").call(yAxis3);
-        console.log("yellow " + yScale3.domain());
-        svg.select(".axisYellow").selectAll("text").attr("dx", "2.2em");
-        svg.selectAll("#yellowLine")
-            .datum(dataset3)
-            .attr("d", line3);
-    } else if (onGreenZoom) {
-        svg.select(".axisGreen").call(yAxis4);
-        console.log("green " + yScale4.domain());
-        svg.select(".axisGreen").selectAll("text").attr("dx", "2em");
-        svg.selectAll("#greenLine")
-            .datum(dataset4)
-            .attr("d", line4);
-    }
-};
+/***************Initialize circle and dashed line to isolate a data point***************/
 
 //apend circle at the intersection
 focus.append("circle")
     .attr("class", "y")
     .style("fill", "none")
-    .style("stroke", "#e41a1c")
+    .style("stroke", red)
     .attr("r", 4);
 
 // append the x line
 focus.append("line")
     .attr("class", "x")
-    .style("stroke", "#e41a1c")
+    .style("stroke", red)
     .style("stroke-dasharray", "3,3")
     .style("opacity", 0.5)
     .attr("y1", 0)
@@ -566,11 +657,13 @@ focus.append("line")
 // append the y line
 focus.append("line")
     .attr("class", "y")
-    .style("stroke", "#e41a1c")
+    .style("stroke", red)
     .style("stroke-dasharray", "3,3")
     .style("opacity", 0.5)
     .attr("x1", 0)
     .attr("x2", width);
+
+/***************Tooltip Logic***************/
 
 // update tooltip position
 function mousemove() {
@@ -584,9 +677,9 @@ function mousemove() {
             d = ((x0 - d0.Sea_Date) > (d1.Sea_Date - x0)) ? d1 : d0;
 
         focus.select("circle")
-            .style("stroke", "#e41a1c")
+            .style("stroke", red)
         focus.selectAll("line")
-            .style("stroke", "#e41a1c");
+            .style("stroke", red);
 
         focus.select("circle.y")
             .attr("transform",
@@ -613,9 +706,9 @@ function mousemove() {
             d = ((x0 - d0.Temp_Year) > (d1.Temp_Year - x0)) ? d1 : d0;
 
         focus.select("circle")
-            .style("stroke", "#377eb8")
+            .style("stroke", blue)
         focus.selectAll("line")
-            .style("stroke", "#377eb8");
+            .style("stroke", blue);
 
         focus.select("circle.y")
             .attr("transform",
@@ -641,9 +734,9 @@ function mousemove() {
             d = ((x0 - d0.CO2_Year) > (d1.CO2_Year - x0)) ? d1 : d0;
 
         focus.select("circle")
-            .style("stroke", "#FFAC00")
+            .style("stroke", yellow)
         focus.selectAll("line")
-            .style("stroke", "#FFAC00");
+            .style("stroke", yellow);
 
         focus.select("circle.y")
             .attr("transform",
@@ -669,9 +762,9 @@ function mousemove() {
             d = ((x0 - d0.Sea_Ice_Year) > (d1.Sea_Ice_Year - x0)) ? d1 : d0;
 
         focus.select("circle")
-            .style("stroke", "#4daf4a")
+            .style("stroke", green)
         focus.selectAll("line")
-            .style("stroke", "#4daf4a");
+            .style("stroke", green);
 
         focus.select("circle.y")
             .attr("transform",
@@ -693,7 +786,43 @@ function mousemove() {
 
 };
 
+//Display Tooltip
+function showTooltip(t,v,c){
+    
+    var h = -90;
+    var w = -100;
+    
+    var matrix = c.getScreenCTM()
+        .translate(+c.getAttribute("cx"),+c.getAttribute("cy"));
+        tooltip.transition().duration(200).style("opacity", 0.9); 
+    
+    if(onRedPath){
+        tooltip.html("Year " + t + "<br /><br />" + "Global Mean Sea Level" + "<br />" + v + "mm")  
+            .style("left", window.pageXOffset + matrix.e + w + "px")     
+            .style("top", window.pageYOffset + matrix.f + h + "px");
+    } else if (onBluePath) {
+        tooltip.html("Year " + t + "<br /><br />" + "Global Annual Temp. Mean" + "<br />" + v + "&deg;C")  
+            .style("left", window.pageXOffset + matrix.e + w + "px")     
+            .style("top", window.pageYOffset + matrix.f + h +"px");
+    } else if (onYellowPath) {
+        tooltip.html("Year " + t + "<br /><br />" + "Global Annual C0<sub>2</sub> Emiss. Mean" + "<br />" + v + "ppm")  
+            .style("left", window.pageXOffset + matrix.e + w + "px")     
+            .style("top", window.pageYOffset + matrix.f + h + "px");
+    } else if (onGreenPath) {
+        tooltip.html("Year " + t + "<br /><br />" + "Artic Sea Ice Minimum" + "<br />" + v + "M sq. km")  
+            .style("left", window.pageXOffset + matrix.e + w + "px")     
+            .style("top", window.pageYOffset + matrix.f + h + "px");
+    };
+};
+
+//Hide Tooltip
+function hideTooltip(){
+    tooltip.transition().duration(200).style("opacity", 0);
+};
+
+
 /***************Zoom Logic***************/
+
 function zoomed1() {
 
     svg.select(".axisRed").transition().duration(1000).call(yAxis1);
@@ -756,6 +885,8 @@ function zoomed4() {
         .attr("cy", function(d) { return yScale4(d.size); });
 };
 
+/***************Zoom Out Logic***************/
+
 function zoomOut() {
     
     svg.call(
@@ -763,7 +894,7 @@ function zoomOut() {
         .y(yScale1)
         .scaleExtent([1, 10])
         .on("zoom", zoomed1)
-        .y(yScale1.domain( displayFullCounter%2 == 0 ? [-138.81745544323303,81.98254455676701] : [-370.5873381902873,82.45929302054348] ))
+        .y(yScale1.domain( displayMore == false ? [-138.81745544323303,81.98254455676701] : [-370.5873381902873,82.45929302054348] ))
         .event);
 
     svg.call(
@@ -771,7 +902,7 @@ function zoomOut() {
         .y(yScale2)
         .scaleExtent([1, 10])
         .on("zoom", zoomed2)
-        .y(yScale2.domain( displayFullCounter%2 == 0 ? [-0.12298306496912875,0.9170169350308713] : [-1.0490103069115129,1.3402822714823206] ))
+        .y(yScale2.domain( displayMore == false ? [-0.12298306496912875,0.9170169350308713] : [-1.0490103069115129,1.3402822714823206] ))
         .event);
 
     svg.call(
@@ -779,7 +910,7 @@ function zoomOut() {
         .y(yScale3)
         .scaleExtent([1, 10])
         .on("zoom", zoomed3)
-        .y(yScale3.domain( displayFullCounter%2 == 0 ? [318.22523749494553,431.00523749494556] : [250.8646806411217,529.3551098266029] ))
+        .y(yScale3.domain( displayMore == false ? [318.22523749494553,431.00523749494556] : [250.8646806411217,529.3551098266029] ))
         .event);
 
     svg.call(
@@ -787,7 +918,7 @@ function zoomOut() {
         .y(yScale4)
         .scaleExtent([1, 10])
         .on("zoom", zoomed4)
-        .y(yScale4.domain( displayFullCounter%2 == 0 ? [8.354811609268188,-0.20518839073181194] : [10.65405455025001,-9.011661287299242] ))
+        .y(yScale4.domain( displayMore == false ? [8.354811609268188,-0.20518839073181194] : [10.65405455025001,-9.011661287299242] ))
         .event);
 
 };  
@@ -800,7 +931,7 @@ function zoomReset() {
         .y(yScale1)
         .scaleExtent([1, 10])
         .on("zoom", zoomed1)
-        .y(yScale1.domain( displayFullCounter%2 == 0 ? [-22.5,76.1] : d3.extent(dataset1, function(d) { return d.GMSL;}) ))
+        .y(yScale1.domain( displayMore == false ? [-22.5,76.1] : d3.extent(dataset1, function(d) { return d.GMSL;}) ))
         .event);
 
     svg.call(
@@ -808,7 +939,7 @@ function zoomReset() {
         .y(yScale2)
         .scaleExtent([1, 10])
         .on("zoom", zoomed2)
-        .y(yScale2.domain( displayFullCounter%2 == 0 ? [0.18,0.7] : d3.extent(dataset2, function(d) { return d.Annual_5_Year_Mean;}) ))
+        .y(yScale2.domain( displayMore == false ? [0.18,0.7] : d3.extent(dataset2, function(d) { return d.Annual_5_Year_Mean;}) ))
         .event);
 
     svg.call(
@@ -828,108 +959,7 @@ function zoomReset() {
         .event);
 };
 
-/***************Tooltip Logic***************/
-function showTooltip(t,v,c){
-    
-    var h = -90;
-    var w = -100;
-    
-    var matrix = c.getScreenCTM()
-        .translate(+c.getAttribute("cx"),+c.getAttribute("cy"));
-        tooltip.transition().duration(200).style("opacity", 0.9); 
-    
-    if(onRedPath & redDisplay){
-        tooltip.html("Year " + t + "<br /><br />" + "Global Mean Sea Level" + "<br />" + v + "mm")  
-            .style("left", window.pageXOffset + matrix.e + w + "px")     
-            .style("top", window.pageYOffset + matrix.f + h + "px");
-    } else if (onBluePath) {
-        tooltip.html("Year " + t + "<br /><br />" + "Global Annual Temp. Mean" + "<br />" + v + "&deg;C")  
-            .style("left", window.pageXOffset + matrix.e + w + "px")     
-            .style("top", window.pageYOffset + matrix.f + h +"px");
-    } else if (onYellowPath) {
-        tooltip.html("Year " + t + "<br /><br />" + "Global Annual C0<sub>2</sub> Emiss. Mean" + "<br />" + v + "ppm")  
-            .style("left", window.pageXOffset + matrix.e + w + "px")     
-            .style("top", window.pageYOffset + matrix.f + h + "px");
-    } else if (onGreenPath) {
-        tooltip.html("Year " + t + "<br /><br />" + "Artic Sea Ice Minimum" + "<br />" + v + "M sq. km")  
-            .style("left", window.pageXOffset + matrix.e + w + "px")     
-            .style("top", window.pageYOffset + matrix.f + h + "px");
-    };
-};
-
-function hideTooltip(){
-    tooltip.transition().duration(200).style("opacity", 0);
-};
-
 /***************Isolate Line Logic***************/
-function isolate(){
-
-    isolateCounter++;
-
-    if (isolateOn) {
-        isolateOn = false;
-    } else {
-        isolateOn = true;
-    }
-    
-    /***************Red Logic***************/
-    if (onRedPath == false) {
-        removeRed();
-    }; 
-    
-    if (redDisplay == false & isolateOn == false) {
-        dataPrint1();
-        redDisplay = true;
-    };
-    
-    /***************Blue Logic***************/
-    if (onBluePath == false) {
-        removeBlue();
-    } else {
-        svg.selectAll(".axisBlue")
-            .transition()
-            .duration(500)
-            .attr("transform", "translate(" + (isolateOn == true ? "-20" : "-80") + ",0)");
-        svg.selectAll("#textBlue")
-            .transition()
-            .duration(500)
-            .attr("dy", isolateOn == true ? -70 : -130);
-    };
-    
-    if (blueDisplay == false & isolateOn == false) {
-        dataPrint2();
-        blueDisplay = true;
-    };
-    
-    /***************Yellow Logic***************/
-    if (onYellowPath == false) {
-        removeYellow();
-    };
-    
-    if (yellowDisplay == false & isolateOn == false) {
-        dataPrint3();
-        yellowDisplay = true;
-    };
-    
-    /***************Green Logic***************/
-    if (onGreenPath == false) {
-        removeGreen();
-    } else {
-        svg.selectAll(".axisGreen")
-            .transition()
-            .duration(500)
-            .attr("transform", "translate(" + (isolateOn == true ? "740" : "810") + ",0)");
-        svg.selectAll("#textGreen")
-            .transition()
-            .duration(500)
-            .attr("dy", isolateOn == true ? -790 : -855);
-    };
-    
-    if (greenDisplay == false & isolateOn == false) {
-        dataPrint4();
-        greenDisplay = true;
-    };
-};
 
 function removeRed(){
     svg.selectAll("#redLine")
@@ -947,9 +977,13 @@ function removeRed(){
         .duration(500)
         .style("opacity", 0)
         .remove();
+    svg.selectAll("#redRect")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .remove();
     svg.selectAll("#redCircle")
         .remove();
-    redDisplay = false;
 };
 
 function removeBlue(){
@@ -968,9 +1002,13 @@ function removeBlue(){
         .duration(500)
         .style("opacity", 0)
         .remove();
+    svg.selectAll("#blueRect")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .remove();
     svg.selectAll("#blueCircle")
         .remove();
-    blueDisplay = false;
 };
 
 function removeYellow(){
@@ -989,9 +1027,13 @@ function removeYellow(){
         .duration(500)
         .style("opacity", 0)
         .remove();
+    svg.selectAll("#yellowRect")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .remove();
     svg.selectAll("#yellowCircle")
         .remove();
-    yellowDisplay = false;
 };
 
 function removeGreen(){
@@ -1010,9 +1052,150 @@ function removeGreen(){
         .duration(500)
         .style("opacity", 0)
         .remove();
+    svg.selectAll("#greenRect")
+        .transition()
+        .duration(500)
+        .style("opacity", 0)
+        .remove();
     svg.selectAll("#greenCircle")
         .remove();
-    greenDisplay = false;
+};
+
+function redrawGraph() {
+    red = tempRed;
+    blue = tempBlue;
+    yellow = tempYellow;
+    green = tempGreen;
+    isolateCounter++;
+    
+    var styleElement = document.createElement("style");
+        styleElement.type = "text/css"; 
+        document.head.insertBefore(styleElement, null);  
+        var styleSheet = styleElement.sheet;
+        var ruleNum = styleSheet.cssRules.length;
+
+    if (onRedTitle == false) { 
+        removeRed();
+        red = redrawCounter%2 == 0 ? gray : tempRed;
+        styleSheet.insertRule(
+            redrawCounter%2 == 0 ? ".axisRed line{stroke:#d3d3d3;}":
+                ".axisRed line{stroke:#e41a1c;}" , 
+            ruleNum);
+        styleSheet.insertRule(
+            redrawCounter%2 == 0 ? ".axisRed path{stroke:#d3d3d3;}":
+                ".axisRed path{stroke:#e41a1c;}" , 
+            ruleNum);
+        dataPrint1();
+    } else {
+        redGrayed = false;
+        blueGrayed = redrawCounter%2 == 0 ? true : false;
+        yellowGrayed = redrawCounter%2 == 0 ? true : false;
+        greenGrayed = redrawCounter%2 == 0 ? true : false;
+    };
+
+    if (onBlueTitle == false) { 
+        removeBlue();
+        blue = redrawCounter%2 == 0 ? gray : tempBlue;
+        styleSheet.insertRule(
+            redrawCounter%2 == 0 ? ".axisBlue line{stroke:#d3d3d3;}" :
+                ".axisBlue line{stroke:#377eb8;}" , 
+            ruleNum);
+        styleSheet.insertRule(
+            redrawCounter%2 == 0 ? ".axisBlue path{stroke:#d3d3d3;}" :
+                ".axisBlue path{stroke:#377eb8;}" , 
+            ruleNum);
+        dataPrint2();
+    } else {
+        redGrayed = redrawCounter%2 == 0 ? true : false;
+        blueGrayed = false;
+        yellowGrayed = redrawCounter%2 == 0 ? true : false;
+        greenGrayed = redrawCounter%2 == 0 ? true : false;
+        console.log("Hi");
+    };
+
+    if (onYellowTitle == false) { 
+        removeYellow();
+        yellow = redrawCounter%2 == 0 ? gray : tempYellow;
+        styleSheet.insertRule(
+            redrawCounter%2 == 0 ? ".axisYellow line{stroke:#d3d3d3;}" :
+                ".axisYellow line{stroke:#FFAC00;}" , 
+            ruleNum);
+        styleSheet.insertRule(
+            redrawCounter%2 == 0 ? ".axisYellow path{stroke:#d3d3d3;}" :
+                ".axisYellow path{stroke:#FFAC00;}" , 
+            ruleNum);
+        dataPrint3();
+    } else {
+        redGrayed = redrawCounter%2 == 0 ? true : false;
+        blueGrayed = redrawCounter%2 == 0 ? true : false;
+        yellowGrayed = false;
+        greenGrayed = redrawCounter%2 == 0 ? true : false;
+    };
+
+    if (onGreenTitle == false) { 
+        removeGreen();
+        green = redrawCounter%2 == 0 ? gray : tempGreen;
+        styleSheet.insertRule(
+            redrawCounter%2 == 0 ? ".axisGreen path {stroke:#d3d3d3;}" :
+                ".axisGreen path{stroke:#4daf4a;}" , 
+            ruleNum);
+        styleSheet.insertRule(
+            redrawCounter%2 == 0 ? ".axisGreen line{stroke:#d3d3d3;}" :
+                ".axisGreen line{stroke:#4daf4a;}" , 
+            ruleNum);
+        dataPrint4();
+    } else {
+        redGrayed = redrawCounter%2 == 0 ? true : false;
+        blueGrayed = redrawCounter%2 == 0 ? true : false;
+        yellowGrayed = redrawCounter%2 == 0 ? true : false;
+        greenGrayed = false;
+    };
+    
+    redrawCounter++;
+}
+
+function moveBlue() {
+    svg.selectAll("#redRect")
+        .attr("x", redrawCounter%2 != 0 ? -155 : -75);
+    svg.selectAll("#textRed")
+        .attr("dy", redrawCounter%2 != 0 ? -140 : -60);
+    svg.selectAll(".axisRed")
+        .attr("transform", "translate(" + (redrawCounter%2 != 0 ? "-100" : "-20") + ",0)" );
+
+    svg.selectAll("#blueRect")
+        .transition()
+        .duration(500)
+        .attr("x", redrawCounter%2 != 0 ? -85 : -155 );
+    svg.selectAll("#textBlue")
+        .transition()
+        .duration(500)
+        .attr("dy", redrawCounter%2 != 0 ? -70 : -140);
+    svg.selectAll(".axisBlue")
+        .transition()
+        .duration(500)
+        .attr("transform", "translate(" + (redrawCounter%2 != 0 ? "-20" : "-90") + ",0)" );
+};
+
+function moveGreen(){
+    svg.selectAll("#yellowRect")
+        .attr("x", redrawCounter%2 != 0 ? 865 : 785);
+    svg.selectAll("#textYellow")
+        .attr("dy", redrawCounter%2 != 0 ? -870 : -790);
+    svg.selectAll(".axisYellow")
+        .attr("transform", "translate(" + (redrawCounter%2 != 0 ? "820" : "740") + ",0)" );
+
+    svg.selectAll("#greenRect")
+        .transition()
+        .duration(500)
+        .attr("x", redrawCounter%2 != 0 ? 785 : 865 );
+    svg.selectAll("#textGreen")
+        .transition()
+        .duration(500)
+        .attr("dy", redrawCounter%2 != 0 ? -790 : -870);
+    svg.selectAll(".axisGreen")
+        .transition()
+        .duration(500)
+        .attr("transform", "translate(" + (redrawCounter%2 != 0 ? "740" : "820") + ",0)" );
 };
 
 function displayFullData() {
@@ -1023,8 +1206,8 @@ function displayFullData() {
         .y(yScale1)
         .scaleExtent([1, 10])
         .on("zoom", zoomed1)
-        .x(xScale1.domain([displayFullCounter%2 == 0 ? 1880 : 1979,2015]))
-        .y(yScale1.domain((displayFullCounter%2 == 0) ? (d3.extent(dataset1, function(d) { return d.GMSL;})) : [-22.5,76.1]))
+        .x(xScale1.domain([displayMore == true ? 1880 : 1979,2015]))
+        .y(yScale1.domain((displayMore == true) ? (d3.extent(dataset1, function(d) { return d.GMSL;})) : [-22.5,76.1]))
         .event);
     
     svg.call(
@@ -1033,8 +1216,8 @@ function displayFullData() {
         .y(yScale2)
         .scaleExtent([1, 10])
         .on("zoom", zoomed2)
-        .x(xScale2.domain([displayFullCounter%2 == 0 ? 1880 : 1979,2015]))
-        .y(yScale2.domain((displayFullCounter%2 == 0) ? (d3.extent(dataset2, function(d) { return d.Annual_5_Year_Mean;})) : [0.18,0.7]))
+        .x(xScale2.domain([displayMore == true ? 1880 : 1979,2015]))
+        .y(yScale2.domain((displayMore == true) ? (d3.extent(dataset2, function(d) { return d.Annual_5_Year_Mean;})) : [0.18,0.7]))
         .event);
     
     svg.call(
@@ -1042,7 +1225,7 @@ function displayFullData() {
         .x(xScale3)
         .scaleExtent([1, 10])
         .on("zoom", zoomed3)
-        .x(xScale3.domain([displayFullCounter%2 == 0 ? 1880 : 1979,2015]))
+        .x(xScale3.domain([displayMore == true ? 1880 : 1979,2015]))
         .event);
     
     svg.call(
@@ -1050,10 +1233,9 @@ function displayFullData() {
         .x(xScale4)
         .scaleExtent([1, 10])
         .on("zoom", zoomed4)
-        .x(xScale4.domain([displayFullCounter%2 == 0 ? 1880 : 1979,2015]))
+        .x(xScale4.domain([displayMore == true ? 1880 : 1979,2015]))
         .event);
     
-    displayFullCounter++;
     if(zoomToggled == true){
         zoomReset();
         zoomOut();
