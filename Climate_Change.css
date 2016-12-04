@@ -17,15 +17,23 @@ svg {
     stroke-width: 1.5px;
 }
 
+.axisGray path,
+.axisGray line{
+    fill: none;
+    stroke: #D3D3D3;
+    stroke-width: 2px;
+    shape-rendering: geometricPrecision;
+}
+.axisGray text{
+    fill: #D3D3D3;
+}
+
 .axisRed path,
 .axisRed line{
     fill: none;
     stroke: #e41a1c;
     stroke-width: 2px;
     shape-rendering: geometricPrecision;
-}
-.axisRed text{
-    fill: #e41a1c;
 }
 
 .axisBlue path,
@@ -35,9 +43,6 @@ svg {
     stroke-width: 2px;
     shape-rendering: geometricPrecision;
 }
-.axisBlue text{
-    fill: #377eb8;
-}
 
 .axisYellow path,
 .axisYellow line{
@@ -46,9 +51,6 @@ svg {
     stroke-width: 2px;
     shape-rendering: geometricPrecision;
 }
-.axisYellow text{
-    fill: #FFAC00;
-}
 
 .axisGreen path,
 .axisGreen line{
@@ -56,9 +58,6 @@ svg {
     stroke: #4daf4a;
     stroke-width: 2px;
     shape-rendering: geometricPrecision;
-}
-.axisGreen text{
-    fill: #4daf4a;
 }
 
 div.tooltip {   
@@ -132,4 +131,11 @@ div.tooltip {
     -moz-box-shadow: 4px 4px 12px rgba(0,0,0,.5);
     -webkit-box-shadow: 4px 4px 12px rgba(0,0,0,.5);
     box-shadow: 0px 3px 12px rgba(0,0,0,.25);
+}
+
+.btn:hover, .btn:active, .btn:focus {
+    outline: none !important;
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    border-color: #474544 !important;
 }
