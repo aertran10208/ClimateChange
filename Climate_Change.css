@@ -17,17 +17,6 @@ svg {
     stroke-width: 1.5px;
 }
 
-.axisGray path,
-.axisGray line{
-    fill: none;
-    stroke: #D3D3D3;
-    stroke-width: 2px;
-    shape-rendering: geometricPrecision;
-}
-.axisGray text{
-    fill: #D3D3D3;
-}
-
 .axisRed path,
 .axisRed line{
     fill: none;
@@ -62,18 +51,26 @@ svg {
 
 div.tooltip {   
   position: absolute;           
-  text-align: center;           
-  width: 200px;                  
-  height: 70px;                 
+  width: 150px;                  
+  height: auto;                 
   padding: 10px;             
   font: 12px sans-serif;        
   background-color: white;   
   border: 1px solid #ddd;  
-  border-radius: 2px;           
+  border-radius: 5px;           
   pointer-events: none;
   -moz-box-shadow: 4px 4px 12px rgba(0,0,0,.5);
   -webkit-box-shadow: 4px 4px 12px rgba(0,0,0,.5);
   box-shadow: 0px 3px 12px rgba(0,0,0,.25);
+}
+
+.left-align {
+    margin: 0;
+    text-align: left;
+}
+
+.right-align {
+    float: right;
 }
 
 .center-align {
