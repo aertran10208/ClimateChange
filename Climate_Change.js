@@ -689,7 +689,7 @@ function mousemove() {
         var x0 = xScaleRed.invert(d3.mouse(this)[0]),
             i = bisectDate1(seaData, x0, 1),
             d0 = seaData[i - 1],
-            d1 = seaData[i],
+            d1 = seaData[i] == undefined ? seaData[i - 1] : seaData[i],
             d = ((x0 - d0.Sea_Year) > (d1.Sea_Year - x0)) ? d1 : d0;
 
         focus.select("circle")
@@ -718,7 +718,7 @@ function mousemove() {
         var x0 = xScaleBlue.invert(d3.mouse(this)[0]),
             i = bisectDate2(tempData, x0, 1),
             d0 = tempData[i - 1],
-            d1 = tempData[i],
+            d1 = tempData[i] == undefined ? tempData[i-1] : tempData[i],
             d = ((x0 - d0.Temp_Year) > (d1.Temp_Year - x0)) ? d1 : d0;
 
         focus.select("circle")
@@ -746,7 +746,7 @@ function mousemove() {
         var x0 = xScaleYellow.invert(d3.mouse(this)[0]),
             i = bisectDate3(carbData, x0, 1),
             d0 = carbData[i - 1],
-            d1 = carbData[i],
+            d1 = carbData[i] == undefined ? carbData[i-1] : carbData[i],
             d = ((x0 - d0.CO2_Year) > (d1.CO2_Year - x0)) ? d1 : d0;
 
         focus.select("circle")
@@ -774,7 +774,7 @@ function mousemove() {
         var x0 = xScaleGreen.invert(d3.mouse(this)[0]),
             i = bisectDate4(iceData, x0, 1),
             d0 = iceData[i - 1],
-            d1 = iceData[i],
+            d1 = iceData[i] == undefined ? iceData[i-1] : iceData[i],
             d = ((x0 - d0.Ice_Year) > (d1.Ice_Year - x0)) ? d1 : d0;
 
         focus.select("circle")
@@ -810,7 +810,7 @@ function showTooltip(t,v,c){
     
     var matrix = c.getScreenCTM()
         .translate(+c.getAttribute("cx"),+c.getAttribute("cy"));
-        tooltip.transition().duration(200).style("opacity", 0.9); 
+        tooltip.transition().duration(200).style("opacity", 0.95); 
     
     if(onRedPath){
         tooltip.html("<p class='center-align'>Global Mean Sea Level"
@@ -819,11 +819,11 @@ function showTooltip(t,v,c){
             .style("left", window.pageXOffset + matrix.e + w + "px")     
             .style("top", window.pageYOffset + matrix.f + h + "px");
     } else if (onBluePath) {
-        tooltip.html("<p class='center-align'>Global Annual Temp. Mean"
+        tooltip.html("<p class='center-align'>Global Annual Temp. Mean</p><p class='center-align'>(relative to 1951-80)"
             +"</p><p class='left-align'>Year:<span class='right-align'>" + t + "</span></p>"
             +"<p class='left-align'>Temp:<span class='right-align'>" + (v>0?"+":"") + v + "&deg;C</span></p>")
             .style("left", window.pageXOffset + matrix.e + w + "px")     
-            .style("top", window.pageYOffset + matrix.f + h - 15 +"px");
+            .style("top", window.pageYOffset + matrix.f + h - 40 +"px");
     } else if (onYellowPath) {
         tooltip.html("<p class='center-align'>Global Annual C0<sub>2</sub> Emiss. Mean"
             +"</p><p class='left-align'>Year:<span class='right-align'>" + t + "</span></p>"
