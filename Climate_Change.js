@@ -115,7 +115,7 @@ var line4 = d3.svg.line()
 
 //initialize the svg object to contain the cirlce and dashed line
 var focus = svg.append("g").style("display", "none");
-//bisect function
+//bisect function (help determine which data point the cursor is closer to)
 var bisectDate1 = d3.bisector(function(d) { return d.Sea_Year; }).left;
 var bisectDate2 = d3.bisector(function(d) { return d.Temp_Year; }).left;
 var bisectDate3 = d3.bisector(function(d) { return d.CO2_Year; }).left;
@@ -230,6 +230,7 @@ svg.append("clipPath")
 
 function dataPrint1() {
     
+    //Create line
     svg.append("path")
         .datum(seaData)
         .attr("id","redLine")
@@ -281,6 +282,7 @@ function dataPrint1() {
         .duration(500)
         .style("opacity", 1);
     
+    //Draw y label
     svg.append("text")
         .attr("id", "textRed")
         .style("fill", red)
@@ -303,6 +305,7 @@ function dataPrint1() {
         .call(xAxisRed);
     };
     
+    //Draw title box/button
     svg.append("rect")
         .attr("id", "redRect")
         .attr("x", -80)
@@ -345,7 +348,8 @@ function dataPrint1() {
 //////////////////////////////////////////////////////////////////////////////////
 
 function dataPrint2() {
-
+    
+    //Create line
     svg.append("path")
         .datum(tempData)
         .attr("id","blueLine")
@@ -385,7 +389,8 @@ function dataPrint2() {
                                         hideTooltip();
                                    })
         .on("mousemove", mousemove);
-
+    
+    //Draw y axis
     svg.append("g")
         .attr("class", "axisBlue")
         .attr("transform", "translate(-95,0)")
@@ -396,6 +401,7 @@ function dataPrint2() {
         .duration(500)
         .style("opacity", 1);
     
+    //Dray y label
     svg.append("text")
         .attr("id", "textBlue")
         .style("fill", blue)
@@ -409,6 +415,7 @@ function dataPrint2() {
         .duration(500)
         .style("opacity", 1);
     
+    //Dray title box/button
     svg.append("rect")
         .attr("id", "blueRect")
         .attr("x", -160)
@@ -452,7 +459,8 @@ function dataPrint2() {
 //////////////////////////////////////////////////////////////////////////////////
 
 function dataPrint3() {
-
+    
+    //Create line
     svg.append("path")
     .datum(carbData)
     .attr("id", "yellowLine")
@@ -486,7 +494,8 @@ function dataPrint3() {
                                         hideTooltip();
                                    })
         .on("mousemove", mousemove);
-
+    
+    //Draw y axis
     svg.append("g")
         .attr("class", "axisYellow")
         .attr("transform", "translate(740,0)")
@@ -498,7 +507,8 @@ function dataPrint3() {
         .style("opacity", 1)
         .selectAll("text")
         .attr("dx", "2.6em");
-
+    
+    //Draw y label
     svg.append("g")
         .append("text")
         .attr("id", "textYellow")
@@ -513,6 +523,7 @@ function dataPrint3() {
         .duration(500)
         .style("opacity", 1);
     
+    //Draw title box/button
     svg.append("rect")
         .attr("id", "yellowRect")
         .attr("x", 785)
@@ -555,7 +566,8 @@ function dataPrint3() {
 //////////////////////////////////////////////////////////////////////////////////
 
 function dataPrint4() {
-
+    
+    //Create line
     svg.append("path")
     .datum(iceData)
     .attr("id","greenLine")
@@ -589,7 +601,8 @@ function dataPrint4() {
                                         hideTooltip();
                                    })
         .on("mousemove", mousemove);
-
+    
+    //Draw y axis
     svg.append("g")
         .attr("class", "axisGreen")
         .style("opacity", 0)
@@ -601,7 +614,8 @@ function dataPrint4() {
         .style("opacity", 1)
         .selectAll("text")
         .attr("dx", "2.4em");
-
+    
+    //Draw y label
     svg.append("g")
         .append("text")
         .attr("id", "textGreen")
@@ -616,6 +630,7 @@ function dataPrint4() {
         .duration(500)
         .style("opacity", 1);
     
+    //Draw title box/button
     svg.append("rect")
         .attr("id", "greenRect")
         .attr("x", 865)
@@ -654,7 +669,7 @@ function dataPrint4() {
 
 /***************Initialize circle and dashed line to isolate a data point***************/
 
-//apend circle at the intersection
+//apend hollow circle
 focus.append("circle")
     .attr("class", "y")
     .style("fill", "none")
@@ -681,7 +696,7 @@ focus.append("line")
 
 /***************Tooltip Logic***************/
 
-// update tooltip position
+//get cursor position and draw circle and dashed line at data point
 function mousemove() {
 
     if (onRedPath) {
@@ -802,7 +817,7 @@ function mousemove() {
 
 };
 
-//Display Tooltip
+//Display Tooltip/info
 function showTooltip(t,v,c){
     
     var h = -90;
@@ -909,7 +924,7 @@ function zoomed4() {
         .attr("cy", function(d) { return yScaleGreen(d.size); });
 };
 
-/***************Zoom Out Logic***************/
+/***************Zoom Out Logic/Seperate Lines***************/
 
 function zoomOut() {
     
@@ -947,7 +962,7 @@ function zoomOut() {
 
 };  
 
-/***************Reset Zoom Logic***************/
+/***************Reset Zoom Logic/Overlap Lines***************/
 function zoomReset() {
 
     svg.call(
@@ -1085,6 +1100,8 @@ function removeGreen(){
         .remove();
 };
 
+//have to redraw graph b/c axis color are defined in css
+//thus, update css and redraw. 
 function redrawGraph() {
     red = tempRed;
     blue = tempBlue;
@@ -1092,6 +1109,7 @@ function redrawGraph() {
     green = tempGreen;
     isolateCounter++;
     
+    //get css information to edit later
     var styleElement = document.createElement("style");
         styleElement.type = "text/css"; 
         document.head.insertBefore(styleElement, null);  
@@ -1178,6 +1196,7 @@ function redrawGraph() {
     redrawCounter++;
 }
 
+//logic to move blue axis closer to graph
 function moveBlue() {
     svg.selectAll("#redRect")
         .attr("x", redrawCounter%2 != 0 ? -160 : -80);
@@ -1200,6 +1219,7 @@ function moveBlue() {
         .attr("transform", "translate(" + (redrawCounter%2 != 0 ? "-20" : "-95") + ",0)" );
 };
 
+//logic to move green axis closer to graph
 function moveGreen(){
     svg.selectAll("#yellowRect")
         .attr("x", redrawCounter%2 != 0 ? 865 : 785);
@@ -1222,6 +1242,7 @@ function moveGreen(){
         .attr("transform", "translate(" + (redrawCounter%2 != 0 ? "740" : "820") + ",0)" );
 };
 
+//Expand the data from 1880-1980 or undo it. 
 function displayFullData() {
 
     svg.call(
