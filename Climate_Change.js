@@ -669,7 +669,7 @@ function dataPrint4() {
 
 /***************Initialize circle and dashed line to isolate a data point***************/
 
-//apend hollow circle
+//append hollow circle
 focus.append("circle")
     .attr("class", "y")
     .style("fill", "none")
